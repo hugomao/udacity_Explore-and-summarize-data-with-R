@@ -1,0 +1,333 @@
+---
+title: "Red Wine Quality - by Haoquan"
+output: html_document
+---
+
+# Project Introduction
+
+In this project, red wine quality is going to be explored, and analyzed. I will uitilize several data analysis techniques to find insights in one or multiple variables using R.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(GGally)
+library(dplyr)
+library(tidyr)
+```
+
+```{r echo=TRUE, Load_the_Data}
+# Load the Data
+dt <- read.csv('wineQualityReds.csv')
+```
+
+# Univariate Plots Section
+
+Let's take a look at some summary statistics on the dataset first.
+```{r echo=TRUE}
+#summary statistic
+str(dt)
+summary(dt)
+```
+
+In the dataset, there're 13 variables and 1599 rows.The variable X should be the index.Quality is the "Y" variable we are interested and the rest except X are "X" variables that we are going to analyze their influence on the quality.
+When we look at quality, we found it ranged from 3 to 8 with an average of 5.6 and a median of 6.
+
+
+Then i looked at the distribution plot of all 12 variable.
+
+```{r echo=FALSE, message=FALSE, Univariate_Plots, warning=FALSE}
+# Histogram plots of all 12 variables
+dt$quality <- factor(dt$quality, ordered = T)
+
+grid.arrange(qplot(dt$fixed.acidity),
+             qplot(dt$volatile.acidity),
+             qplot(dt$citric.acid),
+             qplot(dt$residual.sugar),
+             qplot(dt$chlorides),
+             qplot(dt$free.sulfur.dioxide),
+             qplot(dt$total.sulfur.dioxide),
+             qplot(dt$density),
+             qplot(dt$pH),
+             qplot(dt$sulphates),
+             qplot(dt$alcohol),
+             qplot(dt$quality),
+             ncol = 4)
+```
+
+From the histogram, we can see that most variables are left skewed, with pH and density to be approxiamately normal distribution.For all the left skewed variables, residual sugar and chlorides seem to have long tails.
+
+Then, let's take a look at boxplots.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Boxplot function
+bp <- function(feature, label) {
+  return(qplot(x = label, y = feature, 
+               data = dt, geom = 'boxplot', 
+               xlab = '', ylab = ''))
+}
+
+# Boxplots for all 12 variables
+grid.arrange(bp(dt$fixed.acidity, 'fixed acidity'), 
+             bp(dt$volatile.acidity, 'volatile acidity'),
+             bp(dt$citric.acid, 'citric acid'),
+             bp(dt$residual.sugar, 'residual sugar'),
+             bp(dt$chlorides, 'chlorides'),
+             bp(dt$free.sulfur.dioxide, 'free sulphur dioxide'),
+             bp(dt$total.sulfur.dioxide, 'total sulphur dioxide'),
+             bp(dt$density, 'density'),
+             bp(dt$pH, 'pH'),
+             bp(dt$sulphates, 'sulphates'),
+             bp(dt$alcohol, 'alcohol'),
+             bp(dt$quality, 'quality'),
+             ncol = 4)
+```
+
+From the boxplots, we can see that most variables have outliers, expecially residual sugar and chlorides.We'll decide if we nned to remove outliers later in the analysis.
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+The shape of the dataset is (1599,13). There're 1599 wine records and 13 variables(with X the index of the dataset).
+
+Among the 12 variables of the wine, first 11 are physicochemical data points on wine samples and the 12th one, quality, is an 10-point scale output based on sensory data from at least three wine experts.
+
+### What is/are the main feature(s) of interest in your dataset?
+
+The main feature of interest is quality. From the Univariate Plots Section, we see that it's nearly a normal distribution where most of observations are in the 5-6 range. 
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+
+Although all variables could potentially impact the wine quallity, through some high level research, the acidity is a major factor that influence the wine. So i think fixed acid , volatile acid, citric acid and pH are significent.
+
+
+### Did you create any new variables from existing variables in the dataset?
+
+```{r echo=FALSE}
+dt$acidity <- dt$fixed.acidity + dt$volatile.acidity + dt$citric.acid
+```
+
+```{r echo=FALSE, message=FALSE}
+dt$quality_score <- ifelse(dt$quality < 5, 'Poor', ifelse(dt$quality > 6, 'Good', 'Mid'))
+
+dt$quality_score <- ordered(dt$quality_score, levels = c('Poor', 'Mid', 'Good'))
+
+```
+
+I created two variables. Quality_score and acidity.Quality score is to group the quality into three buckets - poor,mid and good. Because most wines are 5 or 6, i'll assume 5,6 to be mid level.Everyone below 5 is poor, above 6 is good.Acidity is the combination of fixed acid , volatile acid and citric acid.The sum of three could be a significant feature.
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+The distribution of citric acid is unusual compared with fixed acidity and volatile acidity.The latter two are more like a bell shaped distribution but citric acid more like exponential. It appears that citric acid has a large number of null values, which could be incomplete or unavailable data.
+
+```{r echo=FALSE}
+grid.arrange(ggplot(aes(fixed.acidity), data = dt) + 
+               geom_histogram() + scale_x_log10(), 
+             ggplot(aes(volatile.acidity), data = dt) + 
+               geom_histogram() + scale_x_log10(), 
+             ggplot(aes(citric.acid), data = dt) + 
+               geom_histogram() + scale_x_log10(), 
+             ncol=1)
+```
+
+In general, the dataset is tidy and no other cleaning needed.
+
+
+
+# Bivariate Plots Section
+
+For bivariate analysis, i'll start with creating 11 box plots to find relationships between quality and each features. The reason i use quality score instead of quality is that we have fewer group in quality score which could help us see the relationship more clearly in the plot.
+
+```{r echo=FALSE}
+bp <- function(feature, label) {
+  return(qplot(x = quality_score, y = feature, 
+               data = dt, geom = 'boxplot', 
+               xlab = label, ylab = ''))
+}
+
+grid.arrange(bp(dt$fixed.acidity, 'fixed acidity'), 
+             bp(dt$volatile.acidity, 'volatile acidity'),
+             bp(dt$citric.acid, 'citric acid'),
+             bp(dt$acidity, 'acidity'),
+             bp(dt$residual.sugar, 'residual sugar'),
+             bp(dt$chlorides, 'chlorides'),
+             bp(dt$free.sulfur.dioxide, 'free sulphur dioxide'),
+             bp(dt$total.sulfur.dioxide, 'total sulphur dioxide'),
+             bp(dt$density, 'density'),
+             bp(dt$pH, 'pH'),
+             bp(dt$sulphates, 'sulphates'),
+             bp(dt$alcohol, 'alcohol'),
+             ncol = 4)
+```
+
+From the above boxplot, we could see that fixed acidity,volatile acidity and citric all have relationship with quality score. Fixed acidity and citric acidity have positive relationship while volatile has negative relationship. Acidity has a slightly positive relationship so i dont think the derived variable is better than 3 separate variables.
+Besides, sulphates and alcohol are also positively correlated with wine quality.
+
+To demonstrate what we saw in the plot, i calculated teh correlation between each variables.
+```{r echo=FALSE}
+corr <- c()
+
+for (i in names(dt)){
+  corr[i] <- cor.test(as.numeric(dt[,i]), 
+                      as.numeric(dt$quality))$estimate
+  }
+
+corr
+```
+
+We can see that:
+1. alcohol has the strongest correlation, followed by volatile acidity.
+2. fixed acidity and citric acidity had a positive correlation while volatile acidity had a negative correlation. 
+3. sulfur.dioxide and pH have really low correlation(~ 0.05).
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+From the above boxplot, we could see that fixed acidity,volatile acidity and citric all have relationship with quality score. Fixed acidity and citric acidity have positive relationship while volatile has negative relationship. Acidity has a slightly positive relationship so i dont think the derived variable is better than 3 separate variables.
+Besides, sulphates and alcohol are also positively correlated with wine quality.
+Those findings could be demonstrated by the correlation test.
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+1. acidity and pH. 
+
+```{r echo=FALSE}
+ggplot(aes(x = fixed.acidity, y = pH), data = dt) + geom_point() + 
+  stat_smooth(method="lm", se=FALSE)
+
+cor.test(dt$fixed.acidity, dt$pH)$estimate
+```
+
+```{r echo=FALSE}
+ggplot(aes(x = volatile.acidity, y = pH), data = dt) + geom_point() + 
+  stat_smooth(method="lm", se=FALSE)
+
+cor.test(dt$volatile.acidity, dt$pH)$estimate
+```
+
+```{r echo=FALSE}
+ggplot(aes(x = citric.acid, y = pH), data = dt) + geom_point() + 
+  stat_smooth(method="lm", se=FALSE)
+
+cor.test(dt$citric.acid, dt$pH)$estimate
+```
+
+We could see that for fixed acidity and citric acidity, the relationship is negative.While for volatile acidity, the relationship is slightly positive.
+
+
+
+### What was the strongest relationship you found?
+Top 5 features most correlated with quality:
+
+1.alcohol: 47.6%
+2.volatile acidity: -39.1%
+3.sulphates: 25.1% 
+4.citric acid: 22.6%
+5.total.sulfur.dioxide: -18.5%
+
+
+
+# Multivariate Plots Section
+
+In this multivariate plot section, i'll analyze if there're any interactions between the above 5 features.
+
+```{r echo=FALSE, Multivariate_Plots}
+ggplot(aes(x = alcohol, y = volatile.acidity, color = quality), data = dt) + 
+  geom_point() + facet_wrap(~quality_score)
+
+ggplot(aes(x = alcohol, y = volatile.acidity, color = quality_score), 
+       data = subset(dt, quality_score != 'Mid')) + 
+  geom_point()
+```
+
+For alcohole and volatile.acidity, We could see a clear distinction of the surface with poor wine (high volatile acidity and low alcohol content) and good wine (low volatile acidity and high alcohol content).
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = citric.acid, color = quality_score), 
+       data = subset(dt, dt$citric.acid > 0)) + 
+  geom_point() 
+```
+
+For alcohole and citric acid, didnt find clear interaction
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = sulphates, color = quality_score), 
+       data = subset(dt, quality_score != 'Mid')) + 
+  geom_point()
+```
+
+for alcohole and sulphate, we found a clear distinction of poor wine (low sulphate and low alcohol content) and good wine (high sulphate and high alcohol content).
+
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = total.sulfur.dioxide, color = quality_score), data = dt) + 
+  geom_point()
+```
+
+for alcohol and total sulfur dioxide,didnt find clear interaction
+
+```{r echo=FALSE}
+ggplot(aes(x = citric.acid, y = volatile.acidity, color = quality_score), data = dt) + 
+  geom_point()
+```
+
+for citric.acid and volatile.acidity, the distinction is not very clear, but still could see difference between poor(low citric.acid and high volatile.acidity) and good(high citric.acid and low volatile.acidity)
+
+```{r echo=FALSE}
+ggplot(aes(x = total.sulfur.dioxide, y = volatile.acidity, color = quality_score), data = dt) + 
+  geom_point()
+```
+
+For total.sulfur.dioxide and volatile.acidity, didnt find clear pattern of difference.
+
+
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+From the multivariate plots, i found that alcohol with volitile.acidity and alcohol with sulphate bring strong interaction effect. 
+citric.acid with volatile.acidity bring some interaction, but not very strong. 
+alcohole with citric acid,alcohol with total sulfur dioxide and total.sulfur.dioxide with volatile.acidity bring no interaction effect. Although they each are strong correlated with quality, they didnt strengthen each other by interaction.
+
+### Were there any interesting or surprising interactions between features?
+
+One interesting interaction is between citric.acid with volatile.acidity. They have some degree of interaction effect while for alcohol with citric acid, we could not find the interaction effect although alcohol is a more significant feature than volatile.acidity
+
+------
+
+# Final Plots and Summary
+
+From the final plots below, it can be found that volatile acidity, alcohol and sulphates contribute to good wines.
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = sulphates, color = quality_score), 
+       data = subset(dt, quality_score != 'Mid')) + 
+  geom_point()
+```
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = volatile.acidity, color = quality_score), 
+       data = subset(dt, quality_score != 'Mid')) + 
+  geom_point()
+```
+
+These two scatter plots tell us that good wine is more alcohol, more sulphate and less volatile acidity.
+
+------
+
+# Reflection
+
+Exploratory data analysis proved to be very effective in understanding relationships within the red wine quality dataset. The project show us a systemetic way of analyzing and visualizing a dataset. It starts from univariate analysis, understanding the dataset and distribution of each variables. Although it seems useless in this project, it could be very helpful if there're data quality issues in our dataset. The bivariate analysis later starts bringing insights of the dataset, helping finding most significant features that influence wine quality.I found the top 5 features that mostly correlated with the wine quality:
+                                                      1.alcohol: 47.6%
+                                                      2.volatile acidity: -39.1%
+                                                      3.sulphates: 25.1% 
+                                                      4.citric acid: 22.6%
+                                                      5.total.sulfur.dioxide: -18.5%
+
+It helps me continuing my next step of analysis, the multivariate analysis.The third step is the most important one as it help find the key insights of the dataset, by revealing the interaction effect between variables.I found that alcohol with volitile.acidity and alcohol with sulphate bring strong interaction effect. 
+Finally, by doing a final analysis, i came up with my conclusion that good wine is more alcohol, more sulphate and less volatile acidity.
+
