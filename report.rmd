@@ -195,22 +195,25 @@ Those findings could be demonstrated by the correlation test.
 1. acidity and pH. 
 
 ```{r echo=FALSE}
-ggplot(aes(x = fixed.acidity, y = pH), data = dt) + geom_point() + 
-  stat_smooth(method="lm", se=FALSE)
+ggplot(aes(x = fixed.acidity, y = pH), data = dt) + geom_point(alpha = 0.1 ) + 
+  stat_smooth(method="lm", se=FALSE) +
+  labs(x="fixed acidity (tartaric acid - g / dm^3)",y="pH")
 
 cor.test(dt$fixed.acidity, dt$pH)$estimate
 ```
 
 ```{r echo=FALSE}
-ggplot(aes(x = volatile.acidity, y = pH), data = dt) + geom_point() + 
-  stat_smooth(method="lm", se=FALSE)
+ggplot(aes(x = volatile.acidity, y = pH), data = dt) + geom_point(alpha = 0.1 ) + 
+  stat_smooth(method="lm", se=FALSE)+
+  labs(x="volatile acidity (acetic acid - g / dm^3)",y="pH")
 
 cor.test(dt$volatile.acidity, dt$pH)$estimate
 ```
 
 ```{r echo=FALSE}
-ggplot(aes(x = citric.acid, y = pH), data = dt) + geom_point() + 
-  stat_smooth(method="lm", se=FALSE)
+ggplot(aes(x = citric.acid, y = pH), data = dt) + geom_point( alpha = 0.1 ) + 
+  stat_smooth(method="lm", se=FALSE)+
+  labs(x="citric acid (g / dm^3)",y="pH")
 
 cor.test(dt$citric.acid, dt$pH)$estimate
 ```
@@ -235,12 +238,14 @@ Top 5 features most correlated with quality:
 In this multivariate plot section, i'll analyze if there're any interactions between the above 5 features.
 
 ```{r echo=FALSE, Multivariate_Plots}
-ggplot(aes(x = alcohol, y = volatile.acidity, color = quality), data = dt) + 
-  geom_point() + facet_wrap(~quality_score)
+ggplot(aes(x = alcohol, y = volatile.acidity, color = quality,), data = dt) + 
+  geom_point() + scale_color_brewer(type='seq')+
+  labs(x="alcohol (% by volume)",y="volatile acidity (acetic acid - g / dm^3)")
 
 ggplot(aes(x = alcohol, y = volatile.acidity, color = quality_score), 
        data = subset(dt, quality_score != 'Mid')) + 
-  geom_point()
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="volatile acidity (acetic acid - g / dm^3)")
 ```
 
 For alcohole and volatile.acidity, We could see a clear distinction of the surface with poor wine (high volatile acidity and low alcohol content) and good wine (low volatile acidity and high alcohol content).
@@ -248,7 +253,8 @@ For alcohole and volatile.acidity, We could see a clear distinction of the surfa
 ```{r echo=FALSE}
 ggplot(aes(x = alcohol, y = citric.acid, color = quality_score), 
        data = subset(dt, dt$citric.acid > 0)) + 
-  geom_point() 
+  geom_point() +
+  labs(x="alcohol (% by volume)",y="citric acid (g / dm^3)")
 ```
 
 For alcohole and citric acid, didnt find clear interaction
@@ -256,7 +262,8 @@ For alcohole and citric acid, didnt find clear interaction
 ```{r echo=FALSE}
 ggplot(aes(x = alcohol, y = sulphates, color = quality_score), 
        data = subset(dt, quality_score != 'Mid')) + 
-  geom_point()
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="citric acid (g / dm^3)")
 ```
 
 for alcohole and sulphate, we found a clear distinction of poor wine (low sulphate and low alcohol content) and good wine (high sulphate and high alcohol content).
@@ -264,21 +271,24 @@ for alcohole and sulphate, we found a clear distinction of poor wine (low sulpha
 
 ```{r echo=FALSE}
 ggplot(aes(x = alcohol, y = total.sulfur.dioxide, color = quality_score), data = dt) + 
-  geom_point()
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="total sulfur dioxide (mg / dm^3)")
 ```
 
 for alcohol and total sulfur dioxide,didnt find clear interaction
 
 ```{r echo=FALSE}
 ggplot(aes(x = citric.acid, y = volatile.acidity, color = quality_score), data = dt) + 
-  geom_point()
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="total sulfur dioxide (mg / dm^3)")
 ```
 
 for citric.acid and volatile.acidity, the distinction is not very clear, but still could see difference between poor(low citric.acid and high volatile.acidity) and good(high citric.acid and low volatile.acidity)
 
 ```{r echo=FALSE}
 ggplot(aes(x = total.sulfur.dioxide, y = volatile.acidity, color = quality_score), data = dt) + 
-  geom_point()
+  geom_point()+
+  labs(x="total sulfur dioxide (mg / dm^3)",y="volatile acidity (acetic acid - g / dm^3)")
 ```
 
 For total.sulfur.dioxide and volatile.acidity, didnt find clear pattern of difference.
@@ -306,16 +316,31 @@ From the final plots below, it can be found that volatile acidity, alcohol and s
 ```{r echo=FALSE}
 ggplot(aes(x = alcohol, y = sulphates, color = quality_score), 
        data = subset(dt, quality_score != 'Mid')) + 
-  geom_point()
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="sulphates (potassium sulphate - g / dm3)")
 ```
+
+This plot tells us that good wine is more alcohol and  more sulphate.Because there's clear distinction between poor and good wines in the plot, i'll say that alcohol and sulphate are two important factors influencing quality of wine.
 
 ```{r echo=FALSE}
 ggplot(aes(x = alcohol, y = volatile.acidity, color = quality_score), 
        data = subset(dt, quality_score != 'Mid')) + 
-  geom_point()
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="volatile acidity (acetic acid - g / dm^3)")
 ```
 
-These two scatter plots tell us that good wine is more alcohol, more sulphate and less volatile acidity.
+This plot tells us that good wine is more alcohol and less volatile acidity.Because there's clear distinction between poor and good wines in the plot, i'll say that alcohol and volatile acidity are two important factors influencing quality of wine.
+
+```{r echo=FALSE}
+ggplot(aes(x = alcohol, y = citric.acid, color = quality_score), 
+       data = subset(dt, quality_score != 'Mid')) + 
+  geom_point()+
+  labs(x="alcohol (% by volume)",y="citric acid (g / dm^3)")
+```
+
+This plot tells us that good wine is more alcohol and more citric acidity.Reason i chose this plot is not only because i found clear difference in the plot, i also noticed that impact of citric acidity is opposite to volatile acidity(one is negative, the other is positive), which is interesting.
+
+In conclusion, these three scatter plots tell us that good wine is more alcohol, more sulphate,more citric acid and less volatile acidity.And notice that citric acid and volatile acidity brings opposite impact to wine quality.
 
 ------
 
